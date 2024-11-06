@@ -1,7 +1,7 @@
 import logging
 import inspect
 import threading
-from typing import Any, Callable, override, Self
+from typing import Any, Callable, get_args, get_origin, override, Self
 from functools import partial
 
 from pyjudo.exceptions import (
@@ -10,9 +10,11 @@ from pyjudo.exceptions import (
     ServicesRegistrationError,
 )
 from pyjudo.iservice_container import IServiceContainer
+from pyjudo.lazy import Lazy, LazyProxy
 from pyjudo.service_entry import ServiceEntry
 from pyjudo.service_life import ServiceLife
-from pyjudo.service_scope import ServiceScope   
+from pyjudo.service_scope import ServiceScope
+
 
 class ServiceContainer(IServiceContainer):
     """
@@ -24,7 +26,7 @@ class ServiceContainer(IServiceContainer):
         self.__resolution_stack = threading.local()
         self.__scopes_stack = threading.local()
 
-        self._logger = logging.getLogger(self.__class__.__name__)
+        self._logger: logging.Logger = logging.getLogger(self.__class__.__name__)
         self._services: dict[type[Any], ServiceEntry[Any]] = {}
 
         this_service_entry = ServiceEntry[Self](
@@ -176,6 +178,21 @@ class ServiceContainer(IServiceContainer):
         for name, param in type_hints.items():
             if name == "self":
                 continue
+
+            # Skip *args and **kwargs
+            if param.kind in (
+                inspect.Parameter.VAR_POSITIONAL,
+                inspect.Parameter.VAR_KEYWORD,
+            ):
+                continue
+            
+            origin = get_origin(param.annotation)
+            args = get_args(param.annotation)
+            if origin is Lazy and args:
+                service_class = args[0]
+                kwargs[name] = LazyProxy(self, service_class)
+                continue
+
             if name in overrides:
                 kwargs[name] = overrides[name]
             elif param.annotation in self._services:
@@ -183,7 +200,8 @@ class ServiceContainer(IServiceContainer):
             elif param.default != inspect.Parameter.empty:
                 kwargs[name] = param.default
             else:
-                raise Exception(f"Unable to resolve dependency '{name}' for '{service_entry.service_class}'")
+                raise ServicesResolutionError(f"Unable to resolve dependency '{name}' for '{service_entry.service_class}'")
+        
         self._logger.debug(f"Creating new instance of '{service_entry.service_class.__name__}'")
         return service_entry.service_class(**kwargs)
 
