@@ -26,5 +26,8 @@ class IServiceContainer(ABC):
     @abstractmethod
     def get[T](self, abstract_class: type[T], **overrides: Any) -> T: ... # pyright: ignore[reportAny]
 
+    @abstractmethod
+    def is_registered(self, abstract_class: type) -> bool: ...
+
     def __getitem__[T](self, key: type[T]) -> Callable[..., T]:
         return partial(self.get, key)
