@@ -12,10 +12,10 @@ class ServiceScope:
     Represents a scope for services.
     """
     def __init__(self, service_container: "ServiceContainer") -> None:
-        self._logger = logging.getLogger(self.__class__.__name__)
+        self._logger: logging.Logger = logging.getLogger(self.__class__.__name__)
         self._instances: dict[type[Any], Any] = {}
         self._disposables: list[IDisposable] = []
-        self._container = service_container
+        self._container: "ServiceContainer" = service_container
     
     def get[T](self, abstract_class: type[T], **overrides: Any) -> T:
         return self._container._resolve(abstract_class, scope=self, overrides=overrides)

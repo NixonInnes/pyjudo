@@ -9,8 +9,8 @@ from pyjudo.exceptions import (
     ServicesResolutionError,
     ServicesRegistrationError,
 )
+from pyjudo.factory import Factory, FactoryProxy
 from pyjudo.iservice_container import IServiceContainer
-from pyjudo.lazy import Lazy, LazyProxy
 from pyjudo.service_entry import ServiceEntry
 from pyjudo.service_life import ServiceLife
 from pyjudo.service_scope import ServiceScope
@@ -110,6 +110,16 @@ class ServiceContainer(IServiceContainer):
         return self
 
     @override
+    def unregister(self, abstract_class: type) -> Self:
+        with self.__lock:
+            try:
+                del self._services[abstract_class]
+                self._logger.debug(f"Unregistered service: {abstract_class.__name__}")
+            except KeyError:
+                raise ServicesRegistrationError(f"Service '{abstract_class.__name__}' is not registered.")
+        return self
+
+    @override
     def add_transient[T](self, abstract_class: type[T], service_class: type[T]) -> Self:
         return self.register(abstract_class, service_class, ServiceLife.TRANSIENT)
     
@@ -124,6 +134,11 @@ class ServiceContainer(IServiceContainer):
     @override
     def get[T](self, abstract_class: type[T], **overrides: Any) -> T: # pyright: ignore[reportAny]
         return self._resolve(abstract_class, scope=self._current_scope(), **overrides)
+
+    def get_factory[T](self, abstract_class: type[T]) -> Callable[..., T]:
+        if not self.is_registered(abstract_class):
+            raise ServicesResolutionError(f"Service '{abstract_class.__name__}' is not registered.")
+        return FactoryProxy(self, abstract_class)
 
     def _resolve[T](self, abstract_class: type[T], scope: ServiceScope | None, **overrides: Any) -> T:
         if abstract_class in self._resolution_stack:
@@ -194,9 +209,9 @@ class ServiceContainer(IServiceContainer):
             
             origin = get_origin(param.annotation)
             args = get_args(param.annotation)
-            if origin is Lazy and args:
-                service_class = args[0]
-                kwargs[name] = LazyProxy(self, service_class)
+            if origin is Factory and args:
+                abstract_class = args[0]
+                kwargs[name] = FactoryProxy(self, abstract_class)
                 continue
 
             if name in overrides:

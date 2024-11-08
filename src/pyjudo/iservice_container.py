@@ -15,6 +15,9 @@ class IServiceContainer(ABC):
     ) -> Self: ...
 
     @abstractmethod
+    def unregister(self, abstract_class: type) -> Self: ...
+
+    @abstractmethod
     def add_transient[T](self, abstract_class: type[T], service_class: type[T]) -> Self: ...
 
     @abstractmethod
