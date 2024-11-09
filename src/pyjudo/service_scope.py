@@ -1,7 +1,7 @@
 import logging
 from typing import Any, TYPE_CHECKING
 
-from pyjudo.idisposable import IDisposable
+from pyjudo.disposable import Disposable
 
 if TYPE_CHECKING:
     from pyjudo.service_container import ServiceContainer
@@ -14,7 +14,7 @@ class ServiceScope:
     def __init__(self, service_container: "ServiceContainer") -> None:
         self._logger: logging.Logger = logging.getLogger(self.__class__.__name__)
         self._instances: dict[type[Any], Any] = {}
-        self._disposables: list[IDisposable] = []
+        self._disposables: list[Disposable] = []
         self._container: "ServiceContainer" = service_container
     
     def get[T](self, abstract_class: type[T], **overrides: Any) -> T:
@@ -28,7 +28,7 @@ class ServiceScope:
 
     def set_instance(self, abstract_class: type, instance: Any) -> None:
         self._instances[abstract_class] = instance
-        if isinstance(instance, IDisposable):
+        if isinstance(instance, Disposable):
             self._disposables.append(instance)
     
     def __enter__(self):

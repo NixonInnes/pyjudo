@@ -1,14 +1,18 @@
-class ServicesException(Exception):
+class ServiceException(Exception):
     pass
 
 
-class ServicesCircularDependencyError(ServicesException):
+class ServiceCircularDependencyError(ServiceException):
     pass
 
 
-class ServicesResolutionError(ServicesException):
+class ServiceResolutionError(ServiceException):
     pass
 
 
-class ServicesRegistrationError(ServicesException):
+class ServiceRegistrationError(ServiceException):
+    pass
+
+
+class ServiceDisposedError(ServiceException):
     pass

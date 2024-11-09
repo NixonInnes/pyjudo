@@ -3,9 +3,9 @@ import pytest
 
 from pyjudo import ServiceContainer, ServiceLife
 from pyjudo.exceptions import (
-    ServicesCircularDependencyError,
-    ServicesResolutionError,
-    ServicesRegistrationError,
+    ServiceCircularDependencyError,
+    ServiceResolutionError,
+    ServiceRegistrationError,
 )
 
 
@@ -86,20 +86,20 @@ def test_circular_dependency_detection():
     container.register(IServiceB, ServiceB)
     container.register(IServiceC, ServiceC)
 
-    with pytest.raises(ServicesCircularDependencyError):
+    with pytest.raises(ServiceCircularDependencyError):
         _ = container.get(IServiceA)
 
 def test_unregistered_service_resolution():
     container = ServiceContainer()
 
-    with pytest.raises(ServicesResolutionError):
+    with pytest.raises(ServiceResolutionError):
         _ = container.get(IServiceA)
 
 def test_duplicate_registration():
     container = ServiceContainer()
     container.register(IServiceA, ServiceA)
 
-    with pytest.raises(ServicesRegistrationError):
+    with pytest.raises(ServiceRegistrationError):
         container.register(IServiceA, ServiceA)
 
 def test_overrides_in_transient():
@@ -120,7 +120,7 @@ def test_overrides_in_singleton():
     assert instance1.value == "A"
 
     # Singleton should prevent overrides after the instance is created
-    with pytest.raises(ServicesResolutionError):
+    with pytest.raises(ServiceResolutionError):
         _ = container.get(IServiceA, value="Should Fail")
 
 def test_scoped_lifetime():
@@ -152,7 +152,7 @@ def test_scoped_with_no_scope():
     container = ServiceContainer()
     container.register(IServiceA, ServiceA, ServiceLife.SCOPED)
 
-    with pytest.raises(ServicesResolutionError):
+    with pytest.raises(ServiceResolutionError):
         _ = container.get(IServiceA)
 
 def test_scoped_with_disposable():
