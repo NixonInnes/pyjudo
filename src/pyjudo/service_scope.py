@@ -1,7 +1,8 @@
+from functools import partial
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
-from pyjudo.idisposable import IDisposable
+from pyjudo.disposable import Disposable
 
 if TYPE_CHECKING:
     from pyjudo.service_container import ServiceContainer
@@ -12,10 +13,10 @@ class ServiceScope:
     Represents a scope for services.
     """
     def __init__(self, service_container: "ServiceContainer") -> None:
-        self._logger = logging.getLogger(self.__class__.__name__)
+        self._logger: logging.Logger = logging.getLogger(self.__class__.__name__)
         self._instances: dict[type[Any], Any] = {}
-        self._disposables: list[IDisposable] = []
-        self._container = service_container
+        self._disposables: list[Disposable] = []
+        self._container: "ServiceContainer" = service_container
     
     def get[T](self, abstract_class: type[T], **overrides: Any) -> T:
         return self._container._resolve(abstract_class, scope=self, overrides=overrides)
@@ -28,7 +29,7 @@ class ServiceScope:
 
     def set_instance(self, abstract_class: type, instance: Any) -> None:
         self._instances[abstract_class] = instance
-        if isinstance(instance, IDisposable):
+        if isinstance(instance, Disposable):
             self._disposables.append(instance)
     
     def __enter__(self):
@@ -39,3 +40,6 @@ class ServiceScope:
         for instance in self._disposables:
             instance.dispose()
         self._container._pop_scope()
+
+    def __getitem__[T](self, key: type[T]) -> Callable[..., T]:
+        return partial(self.get, key)

@@ -1,165 +1,93 @@
-from abc import ABC
 import pytest
 
-from pyjudo import ServiceContainer, ServiceLife
+from pyjudo import ServiceContainer
 from pyjudo.exceptions import (
-    ServicesCircularDependencyError,
-    ServicesResolutionError,
-    ServicesRegistrationError,
+    ServiceCircularDependencyError,
+    ServiceResolutionError,
+    ServiceRegistrationError,
 )
 
 
-# Mock services for testing
-class IServiceA(ABC):
-    value: str
-
-class ServiceA(IServiceA):
-    def __init__(self, value: str = "A"):
-        self.value: str = value
-
-    def dispose(self):
-        self.value = "disposed"
-
-class IServiceB(ABC):
-    pass
-
-class ServiceB(IServiceB):
-    def __init__(self, service_a: IServiceA):
-        self.service_a: IServiceA = service_a
-        self.value: str = "B"
-
-class IServiceC(ABC):
-    pass
-
-class ServiceC(IServiceC):
-    def __init__(self, service_b: IServiceB, service_a: IServiceA):
-        self.service_b: IServiceB = service_b
-        self.service_a: IServiceA = service_a
-        self.value: str = "C"
-
-# Circular dependency example
-class ServiceD(IServiceA):
-    def __init__(self, service_c: IServiceC):
-        self.service_c: IServiceC = service_c
-
-def test_singleton_lifetime():
+def test_register_service(services):
     container = ServiceContainer()
-    container.register(IServiceA, ServiceA, ServiceLife.SINGLETON)
+    _ = container.register(services.IServiceA, services.ServiceA)
 
-    instance1 = container.get(IServiceA)
-    instance2 = container.get(IServiceA)
+    assert container.is_registered(services.IServiceA)
 
-    assert instance1 is instance2
-    assert instance1.value == "A"
-
-def test_transient_lifetime():
     container = ServiceContainer()
-    container.register(IServiceA, ServiceA, ServiceLife.TRANSIENT)
+    _ = container.add_transient(services.IServiceA, services.ServiceA)
 
-    instance1 = container.get(IServiceA)
-    instance2 = container.get(IServiceA)
+    assert container.is_registered(services.IServiceA)
 
-    assert instance1 is not instance2
-    assert instance1.value == "A"
-    assert instance2.value == "A"
-
-def test_register_service():
     container = ServiceContainer()
-    container.register(IServiceA, ServiceA)
+    _ = container.add_scoped(services.IServiceA, services.ServiceA)
 
-    assert container.is_registered(IServiceA)
+    assert container.is_registered(services.IServiceA)
 
-def test_get_resolved_service():
     container = ServiceContainer()
-    container.register(IServiceA, ServiceA)
-    container.register(IServiceB, ServiceB)
+    _ = container.add_singleton(services.IServiceA, services.ServiceA)
 
-    service_b = container.get(IServiceB)
+    assert container.is_registered(services.IServiceA)
 
-    assert isinstance(service_b, ServiceB)
-    assert isinstance(service_b.service_a, ServiceA)
+
+def test_get_resolved_service(services):
+    container = ServiceContainer()
+    _ = container.register(services.IServiceA, services.ServiceA)
+    _ = container.register(services.IServiceB, services.ServiceB)
+
+    service_b = container.get(services.IServiceB)
+
+    assert isinstance(service_b, services.ServiceB)
+    assert isinstance(service_b.service_a, services.ServiceA)
     assert service_b.value == "B"
 
-def test_circular_dependency_detection():
+    service_a_partial = container[services.IServiceA]
+
+    assert callable(service_a_partial)
+    service_a = service_a_partial()
+    assert isinstance(service_a, services.ServiceA)
+
+
+def test_circular_dependency_detection(services):
     container = ServiceContainer()
-    container.register(IServiceA, ServiceD)
-    container.register(IServiceB, ServiceB)
-    container.register(IServiceC, ServiceC)
+    _ = container.register(services.IServiceA, services.CircularService)
+    _ = container.register(services.IServiceB, services.ServiceB)
+    _ = container.register(services.IServiceC, services.ServiceC)
 
-    with pytest.raises(ServicesCircularDependencyError):
-        _ = container.get(IServiceA)
+    with pytest.raises(ServiceCircularDependencyError):
+        _ = container.get(services.IServiceA)
 
-def test_unregistered_service_resolution():
+
+def test_unregistered_service_resolution(services):
     container = ServiceContainer()
 
-    with pytest.raises(ServicesResolutionError):
-        _ = container.get(IServiceA)
+    with pytest.raises(ServiceResolutionError):
+        _ = container.get(services.IServiceA)
 
-def test_duplicate_registration():
+
+def test_duplicate_registration(services):
     container = ServiceContainer()
-    container.register(IServiceA, ServiceA)
+    _ = container.register(services.IServiceA, services.ServiceA)
 
-    with pytest.raises(ServicesRegistrationError):
-        container.register(IServiceA, ServiceA)
+    with pytest.raises(ServiceRegistrationError):
+        _ = container.register(services.IServiceA, services.ServiceA)
 
-def test_overrides_in_transient():
+def test_registration_incorrect_type(services):
     container = ServiceContainer()
-    container.register(IServiceA, ServiceA, ServiceLife.TRANSIENT)
 
-    # Overriding 'value' attribute for transient instance
-    service_a = container.get(IServiceA, value="Overridden")
+    with pytest.raises(ServiceRegistrationError):
+        _ = container.register(services.IServiceA, services.ServiceB)
 
-    assert service_a.value == "Overridden"
-
-def test_overrides_in_singleton():
+def test_unregister(services):
     container = ServiceContainer()
-    container.register(IServiceA, ServiceA, ServiceLife.SINGLETON)
+    _ = container.register(services.IServiceA, services.ServiceA)
 
-    # First instantiation without overrides
-    instance1 = container.get(IServiceA)
-    assert instance1.value == "A"
+    container.unregister(services.IServiceA)
 
-    # Singleton should prevent overrides after the instance is created
-    with pytest.raises(ServicesResolutionError):
-        _ = container.get(IServiceA, value="Should Fail")
+    assert not container.is_registered(services.IServiceA)
 
-def test_scoped_lifetime():
+def test_unregister_unregistered_service(services):
     container = ServiceContainer()
-    container.register(IServiceA, ServiceA, ServiceLife.SCOPED)
 
-    with container.create_scope() as scope:
-        instance1 = scope.get(IServiceA)
-        instance2 = scope.get(IServiceA)
-
-        assert instance1 is instance2
-        assert instance1.value == "A"
-
-def test_scoped_lifetime_multiple_scopes():
-    container = ServiceContainer()
-    container.register(IServiceA, ServiceA, ServiceLife.SCOPED)
-
-    with container.create_scope() as scope1:
-        instance1 = scope1.get(IServiceA)
-
-        with container.create_scope() as scope2:
-            instance2 = scope2.get(IServiceA)
-
-            assert instance1 is not instance2
-            assert instance1.value == "A"
-            assert instance2.value == "A"
-
-def test_scoped_with_no_scope():
-    container = ServiceContainer()
-    container.register(IServiceA, ServiceA, ServiceLife.SCOPED)
-
-    with pytest.raises(ServicesResolutionError):
-        _ = container.get(IServiceA)
-
-def test_scoped_with_disposable():
-    container = ServiceContainer()
-    container.register(IServiceA, ServiceA, ServiceLife.SCOPED)
-
-    with container.create_scope() as scope:
-        instance1 = scope.get(IServiceA)
-
-    assert instance1.value == "disposed"
+    with pytest.raises(ServiceRegistrationError):
+        container.unregister(services.IServiceA)
