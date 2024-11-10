@@ -41,9 +41,14 @@ def test_scoped_with_no_scope(services):
 
 def test_scoped_with_disposable(services):
     container = ServiceContainer()
-    _ = container.register(services.IServiceA, services.SoftDisposableService, ServiceLife.SCOPED)
+    _ = container.register(
+        services.IServiceA, services.SoftDisposableService, ServiceLife.SCOPED
+    )
 
     with container.create_scope() as scope:
         instance1 = scope.get(services.IServiceA)
 
     assert instance1.value == "disposed"
+
+
+def test_scoped_pop_exception(services): ...
