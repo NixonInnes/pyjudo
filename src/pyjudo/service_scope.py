@@ -19,7 +19,7 @@ class ServiceScope:
         self._container: "ServiceContainer" = service_container
     
     def get[T](self, abstract_class: type[T], **overrides: Any) -> T:
-        return self._container._resolve(abstract_class, scope=self, overrides=overrides)
+        return self._container._resolve(abstract_class, scope=self, **overrides)
 
     def has_instance(self, abstract_class: type) -> bool:
         return abstract_class in self._instances
