@@ -1,5 +1,6 @@
+from functools import partial
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 from pyjudo.disposable import Disposable
 
@@ -39,3 +40,6 @@ class ServiceScope:
         for instance in self._disposables:
             instance.dispose()
         self._container._pop_scope()
+
+    def __getitem__[T](self, key: type[T]) -> Callable[..., T]:
+        return partial(self.get, key)

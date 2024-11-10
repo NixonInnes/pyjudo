@@ -8,6 +8,7 @@ from pyjudo.exceptions import (
     ServiceCircularDependencyError,
     ServiceResolutionError,
     ServiceRegistrationError,
+    ServiceTypeError,
 )
 from pyjudo.factory import Factory, FactoryProxy
 from pyjudo.iservice_container import IServiceContainer
@@ -85,7 +86,7 @@ class ServiceContainer(IServiceContainer):
     def register[T](
         self,
         abstract_class: type[T],
-        service_class: type[T],
+        constructor: type[T] | Callable[..., T],
         service_life: ServiceLife = ServiceLife.TRANSIENT,
     ) -> Self:
         """
@@ -100,13 +101,23 @@ class ServiceContainer(IServiceContainer):
                 f"Service '{abstract_class.__name__}' is already registered."
             )
 
-        assert issubclass(
-            service_class, abstract_class
-        ), f"'{service_class.__name__}' does not implement '{abstract_class.__name__}'"
-        
-        service = ServiceEntry[T](service_class, service_life)
+        if inspect.isclass(constructor):
+            if not issubclass(constructor, abstract_class):
+                raise ServiceRegistrationError(f"'{constructor.__name__}' does not implement '{abstract_class.__name__}'")
+        elif callable(constructor):
+            return_annotation = inspect.signature(constructor).return_annotation
+
+            if return_annotation is inspect.Signature.empty:
+                raise ServiceRegistrationError(f"Callable '{constructor.__name__}' must have a return annotation.")
+            
+            if not issubclass(return_annotation, abstract_class):
+                raise ServiceRegistrationError(f"'{constructor.__name__}' does not return '{abstract_class.__name__}'")
+        else:
+            raise ServiceRegistrationError("Constructor must be a class or callable")
+
+        service = ServiceEntry[T](constructor, service_life)
         self._set_service(abstract_class, service)
-        self._logger.debug(f"Registered service: {abstract_class.__name__} as {service_class.__name__} with life {service_life.name}")
+        self._logger.debug(f"Registered service: {abstract_class.__name__} as {constructor.__name__} with life {service_life.name}")
         return self
 
     @override
@@ -133,7 +144,10 @@ class ServiceContainer(IServiceContainer):
 
     @override
     def get[T](self, abstract_class: type[T], **overrides: Any) -> T: # pyright: ignore[reportAny]
-        return self._resolve(abstract_class, scope=self._current_scope(), **overrides)
+        service = self._resolve(abstract_class, scope=self._current_scope(), **overrides)
+        if not issubclass(type(service), abstract_class):
+            raise ServiceTypeError(f"Service '{service}' is not of type '{abstract_class.__name__}'")
+        return service
 
     def get_factory[T](self, abstract_class: type[T]) -> Callable[..., T]:
         if not self.is_registered(abstract_class):
@@ -224,6 +238,7 @@ class ServiceContainer(IServiceContainer):
                 raise ServiceResolutionError(f"Unable to resolve dependency '{name}' for '{service_entry.constructor}'")
         
         self._logger.debug(f"Creating new instance of '{T}'")
+
         return cast(T, service_entry.constructor(**kwargs)) # TODO: Remove cast
 
     def create_scope(self) -> ServiceScope:

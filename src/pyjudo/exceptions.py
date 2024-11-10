@@ -14,5 +14,9 @@ class ServiceRegistrationError(ServiceException):
     pass
 
 
+class ServiceTypeError(ServiceException):
+    pass
+
+
 class ServiceDisposedError(ServiceException):
     pass

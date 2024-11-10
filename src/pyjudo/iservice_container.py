@@ -10,7 +10,7 @@ class IServiceContainer(ABC):
     def register[T](
         self,
         abstract_class: type[T],
-        service_class: type[T],
+        constructor: type[T] | Callable[..., T],
         service_life: ServiceLife = ServiceLife.TRANSIENT,
     ) -> Self: ...
 
