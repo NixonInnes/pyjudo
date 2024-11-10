@@ -119,7 +119,7 @@ print(result)
 # Output:
 """
 Connected to database: connect.to.me
-Executing query: SELECT * FROM default
+Executing query: SELECT * FROM foobar
 Disconnected from database: connect.to.me
 {'result': 'data'}
 """
