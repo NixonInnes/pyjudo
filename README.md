@@ -3,6 +3,12 @@
 ## Overview
 **PyJudo** is a python library to support the [dependency injection](https://en.wikipedia.org/wiki/Dependency_injection) (DI) pattern. . It facilitates the registration of services, resolves dependencies, and manages the lifecycle of services throughout your application. By decoupling service creation from business logic, PyJudo promotes cleaner, more maintainable, and testable codebases.
 
+## Installation
+PyJudo is available on PyPi; install using:
+```bash
+pip install pyjudo
+```
+
 
 ## Features
 - Service lifetimes:
