@@ -20,3 +20,6 @@ class ServiceTypeError(ServiceException):
 
 class ServiceDisposedError(ServiceException):
     pass
+
+class ServiceScopeError(ServiceException):
+    pass

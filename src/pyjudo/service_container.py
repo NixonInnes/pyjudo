@@ -9,6 +9,7 @@ from pyjudo.exceptions import (
     ServiceResolutionError,
     ServiceRegistrationError,
     ServiceTypeError,
+    ServiceScopeError,
 )
 from pyjudo.factory import Factory, FactoryProxy
 from pyjudo.iservice_container import IServiceContainer
@@ -64,10 +65,9 @@ class ServiceContainer(IServiceContainer):
         return self.__resolution_stack.stack
 
     def _current_scope(self) -> ServiceScope | None:
-        try:
-            return self._scope_stack[-1]
-        except IndexError:
+        if not self._scope_stack:
             return None
+        return self._scope_stack[-1]
 
     def _push_scope(self, scope: ServiceScope) -> None:
         with self.__lock:
@@ -80,7 +80,7 @@ class ServiceContainer(IServiceContainer):
                 _ = self._scope_stack.pop()
                 self._logger.debug("Popped scope from stack.")
             except IndexError:
-                self._logger.warning("No scope to pop from stack.")
+                raise ServiceScopeError("No scope available to pop.")
 
     @override
     def register[T](

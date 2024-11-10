@@ -1,7 +1,7 @@
 import pytest
 
 from pyjudo import ServiceContainer, ServiceLife
-from pyjudo.exceptions import ServiceResolutionError
+from pyjudo.exceptions import ServiceResolutionError, ServiceScopeError, ServiceDisposedError
 
 
 def test_scoped_lifetime(services):
@@ -15,6 +15,19 @@ def test_scoped_lifetime(services):
         assert instance1 is instance2
         assert instance1.value == "A"
 
+    with container.create_scope():
+        instance3 = container.get(services.IServiceA)
+        instance4 = container.get(services.IServiceA)
+
+        assert instance3 is instance4
+        assert instance3.value == "A"
+
+    with container.create_scope() as scope:
+        service_a_partial = scope[services.IServiceA]
+
+        assert callable(service_a_partial)
+        instance5 = service_a_partial()
+        assert isinstance(instance5, services.ServiceA)
 
 def test_scoped_lifetime_multiple_scopes(services):
     container = ServiceContainer()
@@ -51,4 +64,27 @@ def test_scoped_with_disposable(services):
     assert instance1.value == "disposed"
 
 
-def test_scoped_pop_exception(services): ...
+def test_scoped_pop_exception(services):
+    container = ServiceContainer()
+    
+    scope = container.create_scope()
+    container._push_scope(scope)
+    container._pop_scope()
+    
+    with pytest.raises(ServiceScopeError):
+        container._pop_scope()
+
+def test_scoped_disposable(services):
+    container = ServiceContainer()
+    _ = container.register(
+        services.IServiceA, services.HardDisposableService, ServiceLife.SCOPED
+    )
+
+    with container.create_scope() as scope:
+        instance = scope.get(services.IServiceA)
+
+    assert instance.is_disposed
+
+    with pytest.raises(ServiceDisposedError):
+        _ = instance.value
+

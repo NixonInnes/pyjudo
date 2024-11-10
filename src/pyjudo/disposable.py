@@ -56,7 +56,10 @@ class IDisposable(ABC):
         Checks if the object is disposed before accessing any attributes.
         """
         # Allow access to certain attributes to prevent recursion and allow checking if disposed.
-        permitted_attrs = ("_check_disposed", "_IDisposable__disposed", "is_disposed")
+        permitted_attrs = (
+            "is_disposed",
+            "_check_disposed", 
+            "_IDisposable__disposed")
         if name not in permitted_attrs:
             self._check_disposed()
         return super().__getattribute__(name) # pyright: ignore[reportAny]
