@@ -88,3 +88,31 @@ def test_scoped_disposable(services):
     with pytest.raises(ServiceDisposedError):
         _ = instance.value
 
+def test_scope_overrides(services):
+    container = ServiceContainer()
+    _ = container.register(services.IServiceA, services.ServiceA, ServiceLife.SCOPED)
+
+    with container.create_scope() as scope:
+        service_a = scope.get(services.IServiceA, value="Overridden")
+
+        assert service_a.value == "Overridden"
+
+    with container.create_scope() as scope:
+        service_a = scope[services.IServiceA](value="Overridden")
+
+        assert service_a.value == "Overridden"
+
+    with container.create_scope():
+        service_a = container.get(services.IServiceA, value="Overridden")
+
+        assert service_a.value == "Overridden"
+
+    with container.create_scope():
+        service_a = container[services.IServiceA](value="Overridden")
+
+        assert service_a.value == "Overridden"
+
+    with container.create_scope() as scope:
+        service_a = scope.get(services.IServiceA)
+
+        assert service_a.value == "A"
