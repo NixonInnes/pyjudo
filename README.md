@@ -1,7 +1,18 @@
 # PyJudo
 
 ## Overview
-**PyJudo** is a python library to support the [dependency injection](https://en.wikipedia.org/wiki/Dependency_injection) (DI) pattern. . It facilitates the registration of services, resolves dependencies, and manages the lifecycle of services throughout your application. By decoupling service creation from business logic, PyJudo promotes cleaner, more maintainable, and testable codebases.
+**PyJudo** is a python library to support the [dependency injection](https://en.wikipedia.org/wiki/Dependency_injection) (DI) pattern. It facilitates the registration of services, resolves dependencies, and manages the lifecycle of services throughout your application. By decoupling service creation from business logic, PyJudo promotes cleaner, more maintainable, and testable codebases.
+
+The goal of **PyJudo** is to provide a lightweight, easy-to-use and simple mechanism to let developers employ a dependency injection pattern into their application's implementation. It takes inspiration from the Microsoft .NET Dependency Injection library of providing a container for services.
+
+It's as simple as:
+ - Define what a service does (e.g. with an abstract class) - this is the "interface"
+ - Create a service container
+ - Create a concrete implementation of the interface
+ - Register the concrete implementation against the interface with the container
+ - Retrieve an instance of the interface from the container
+ - (or specify the interface in another service's constructor)
+ 
 
 ## Installation
 PyJudo is available on PyPi; install using:
@@ -9,15 +20,25 @@ PyJudo is available on PyPi; install using:
 pip install pyjudo
 ```
 
-
 ## Features
+- Services container:
+  - Provides a container to register and resolve dependencies
+
+- Dependency injection:
+  - Automatically resolves and injects dependencies for services retrieved from the service container.
+
 - Service lifetimes:
   - Singletons: A single instance created and  shared across the application
   - Scoped: A single instance created and shared within a scope
   - Transient: A new instance is created every time the service is requested.
 
 - Disposable services:
-  - Automatically disposes of services that implement the `IDisposable` protocol when a scope ends.
+  - Automatically disposes of services that implement the `Disposable` protocol when a scope ends.
+  - Provides an `IDisposable` abstract to prevent the use of "disposed" instances.
+
+- Factories:
+  - Supports registering service factories.
+  - Supports adding dependencies as factories.
 
 - Circular dependencies:
   - Detects and prevents circular dependencies during service resolution.
@@ -35,7 +56,7 @@ Start by defining service interfaces (abstract classes) and their concrete imple
 
 ```python
 from abc import ABC, abstractmethod
-from pyjudo import ServiceContainer, ServiceLife
+from pyjudo import ServiceContainer
 
 # Define service interfaces
 class IDatabaseConnection(ABC):
@@ -97,4 +118,3 @@ with services.create_scope() as service_scope:
 # "Executing query: SELECT * on foobar"
 # "Disconnected from database: connect.to.me"
 ```
-> NOTE: PyJudo will automatically "dispose" scoped services which implement `IDisposable` (i.e. have a `dispose()` method) by calling `dispose()` on them when the service scope exits.
