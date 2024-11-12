@@ -1,4 +1,4 @@
-from pyjudo.core import IResolver, IScopeStack, IServiceScope
+from pyjudo.core import IResolver, IScopeStack, IServiceScope, ServiceLife
 
 from .factory import Factory
 from .resolver import Resolver
@@ -6,7 +6,6 @@ from .scope_stack import ScopeStack
 from .service_cache import ServiceCache
 from .service_container import ServiceContainer as ServiceContainerBase
 from .service_entry_collection import ServiceEntryCollection
-from .service_life import ServiceLife
 from .service_scope import ServiceScope
 
 

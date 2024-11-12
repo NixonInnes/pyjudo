@@ -4,13 +4,12 @@ import threading
 from typing import Any, Callable, cast, get_args, get_origin, override
 
 
-from pyjudo.core import IResolver, IServiceEntryCollection, IServiceCache, IScopeStack
+from pyjudo.core import IResolver, IServiceEntryCollection, IServiceCache, IScopeStack, ServiceLife
 from pyjudo.exceptions import (
     ServiceCircularDependencyError,
     ServiceResolutionError,
     ServiceScopeError,
 )
-from pyjudo.service_life import ServiceLife
 from pyjudo.factory import Factory, FactoryProxy
 
 
@@ -69,6 +68,10 @@ class Resolver(IResolver):
         if instance is None:
             instance = self._create_instance(constructor, overrides)
             self.singleton_cache.add(interface, instance)
+        elif overrides: # already exists and overrides are specified
+            raise ServiceResolutionError(
+                f"Singleton service '{interface.__name__}' already exists. Cannot specify overrides."
+            )
         return instance
 
     def _get_scoped[T](

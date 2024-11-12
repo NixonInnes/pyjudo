@@ -1,6 +1,6 @@
 from collections.abc import Callable
 
-from pyjudo.service_life import ServiceLife
+from .service_life import ServiceLife
 
 
 class ServiceEntry[T]:
