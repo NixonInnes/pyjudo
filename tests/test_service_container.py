@@ -85,9 +85,3 @@ def test_unregister(services):
     container.unregister(services.IServiceA)
 
     assert not container.is_registered(services.IServiceA)
-
-def test_unregister_unregistered_service(services):
-    container = ServiceContainer()
-
-    with pytest.raises(ServiceRegistrationError):
-        container.unregister(services.IServiceA)

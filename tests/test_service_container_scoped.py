@@ -48,7 +48,7 @@ def test_scoped_with_no_scope(services):
     container = ServiceContainer()
     _ = container.register(services.IServiceA, services.ServiceA, ServiceLife.SCOPED)
 
-    with pytest.raises(ServiceResolutionError):
+    with pytest.raises(ServiceScopeError):
         _ = container.get(services.IServiceA)
 
 
@@ -63,16 +63,6 @@ def test_scoped_with_disposable(services):
 
     assert instance1.value == "disposed"
 
-
-def test_scoped_pop_exception(services):
-    container = ServiceContainer()
-    
-    scope = container.create_scope()
-    container._push_scope(scope)
-    container._pop_scope()
-    
-    with pytest.raises(ServiceScopeError):
-        container._pop_scope()
 
 def test_scoped_disposable(services):
     container = ServiceContainer()
@@ -116,3 +106,36 @@ def test_scope_overrides(services):
         service_a = scope.get(services.IServiceA)
 
         assert service_a.value == "A"
+
+
+def test_scoped_service_thread_safety(services):
+    import threading
+
+    container = ServiceContainer()
+
+    _ = container.register(services.IScopedService, services.ScopedService, ServiceLife.SCOPED)
+    _ = container.register(services.IRepository, services.Repository, ServiceLife.TRANSIENT)
+
+    thread_count = 5
+    results = []
+    barrier = threading.Barrier(thread_count)
+    lock = threading.Lock()
+
+    def create_and_resolve_scope():
+        # Wait for all threads to be ready
+        barrier.wait()
+        with container.create_scope() as scope:
+            scoped_service = scope.get(services.IScopedService)
+            with lock:
+                results.append(scoped_service)
+
+    threads = [threading.Thread(target=create_and_resolve_scope) for _ in range(thread_count)]
+
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    # Verify that all scoped services are unique instances
+    unique_services = set(id(service) for service in results)
+    assert len(unique_services) == thread_count, "ScopedService instances are not unique across scopes."

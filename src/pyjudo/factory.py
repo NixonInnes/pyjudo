@@ -1,6 +1,6 @@
-from typing import Any, Protocol
+from typing import override, Any, Protocol
 
-from pyjudo.iservice_container import IServiceContainer
+from pyjudo.core import IResolver
 
 
 class Factory[T](Protocol):
@@ -8,15 +8,17 @@ class Factory[T](Protocol):
 
 
 class FactoryProxy[T](Factory[T]):
-    _container: IServiceContainer
-    _abstract_class: type[T]
+    _resolver: IResolver
+    _interface: type[T]
 
-    def __init__(self, container: IServiceContainer, abstract_class: type[T]):
-        self._container = container
-        self._abstract_class = abstract_class
+    def __init__(self, resolver: IResolver, interface: type[T]):
+        self._resolver = resolver
+        self._interface = interface
 
+    @override
     def __call__(self, **overrides: Any) -> T:
-        return self._container.get(self._abstract_class, **overrides)
+        return self._resolver.resolve(self._interface, overrides)
 
+    @override
     def __repr__(self) -> str:
-        return f"FactoryProxy({self._abstract_class.__name__})"
+        return f"FactoryProxy({self._interface.__name__})"
