@@ -35,6 +35,10 @@ class Resolver(IResolver):
         return self.__resolution_stack.stack
 
     @override
+    def resolve_anonymous[T](self, constructor: Callable[..., T], overrides: dict[str, Any], binding: Any | None = None) -> T:
+        return self._create_instance(constructor, overrides, binding)
+
+    @override
     def resolve[T](self, interface: type[T], overrides: dict[str, Any]) -> T:
         if interface in self._resolution_stack:
             raise ServiceCircularDependencyError(
@@ -101,7 +105,55 @@ class Resolver(IResolver):
         return self._create_instance(constructor, overrides)
 
     def _create_instance[T](
-        self, constructor: type[T] | Callable[..., T], overrides: dict[str, Any]
+        self, constructor: type[T] | Callable[..., T], overrides: dict[str, Any], binding: Any | None = None
+    ) -> T:
+        if inspect.isclass(constructor):
+            signature = inspect.signature(constructor.__init__)
+            parameters = list(signature.parameters.values())[1:] # Skip 'self'
+        else:
+            signature = inspect.signature(constructor)
+            parameters = list(signature.parameters.values())
+
+        constructor_args: list[Any] = []
+        constructor_kwargs: dict[str, Any] = {}
+
+        for param in parameters:
+            name = param.name
+
+            if name in ("self", "cls") and binding is not None:
+                constructor_args.insert(0, binding)
+                continue
+                
+
+            origin = get_origin(param.annotation)
+            args = get_args(param.annotation)
+
+            if origin is Factory and args:
+                interface = args[0]
+                resolved = FactoryProxy(self, interface)
+            elif name in overrides:
+                resolved = overrides[name]
+            elif param.annotation in self.service_entry_collection:
+                resolved = self.resolve(param.annotation, {})
+            elif param.default != inspect.Parameter.empty:
+                resolved = param.default
+            else:
+                raise ServiceResolutionError(
+                    f"Unable to resolve dependency '{name}' for '{constructor.__name__}'"
+                )
+            
+            if param.kind == inspect.Parameter.POSITIONAL_ONLY:
+                constructor_args.append(resolved)
+            elif param.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
+                constructor_kwargs[name] = resolved
+            else:
+                raise Exception("Invalid parameter kind: {param.kind}")
+        
+        return cast(T, constructor(*constructor_args, **constructor_kwargs))
+
+
+    def _create_instance__[T](
+        self, constructor: type[T] | Callable[..., T], overrides: dict[str, Any], instance: Any | None = None
     ) -> T:
         if inspect.isclass(constructor):
             type_hints = inspect.signature(constructor.__init__).parameters

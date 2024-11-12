@@ -1,6 +1,6 @@
 import logging
 import threading
-from typing import override, Callable
+from typing import override
 
 from pyjudo.core import IServiceScope, IScopeStack
 from pyjudo.exceptions import ServiceScopeError

@@ -1,3 +1,4 @@
+from functools import wraps
 import inspect
 import logging
 import threading
@@ -15,6 +16,37 @@ from pyjudo.core import (
 )
 from pyjudo.exceptions import ServiceRegistrationError, ServiceResolutionError, ServiceTypeError
 from pyjudo.factory import FactoryProxy
+
+class InjectDecorator:
+    def __init__(self, resolver: IResolver, func: Callable[..., Any]) -> None:
+        self.resolver: IResolver = resolver
+        self.func: Callable[..., Any] | classmethod[Any, ..., Any] = func
+    
+    def __get__[T](self, instance: T | None, owner: type[T] | None) -> Callable[..., Any] | classmethod[Any, ..., Any]:
+        if isinstance(self.func, classmethod):
+            original_func = self.func.__func__
+
+            @wraps(original_func)
+            def classmethod_wrapper(*args: Any, **kwargs: Any) -> Callable[..., Any]:
+                return self.resolver.resolve_anonymous(original_func, kwargs, binding=owner)
+            return classmethod(classmethod_wrapper)
+
+        elif isinstance(self.func, staticmethod):
+            original_func = self.func.__func__
+
+            @wraps(original_func)
+            def staticmethod_wrapper(*args: Any, **kwargs: Any):
+                return self.resolver.resolve_anonymous(original_func, kwargs, binding=None)
+            return staticmethod(staticmethod_wrapper)
+
+        else:
+            @wraps(self.func)
+            def bound_wrapper(*args, **kwargs):
+                return self.resolver.resolve_anonymous(self.func, kwargs, binding=instance)
+            return bound_wrapper
+
+    def __call__(self, *args, **kwargs):
+        return self.resolver.resolve_anonymous(self.func, kwargs)
 
 
 class ServiceContainer(IServiceContainer):
@@ -59,6 +91,9 @@ class ServiceContainer(IServiceContainer):
         with self.__lock:
             entry = ServiceEntry(constructor, lifetime)
             self.service_entry_collection.set(interface, entry)
+
+    def inject(self, func: Callable[..., Any]) -> Callable[..., Any]:
+        return InjectDecorator(self.resolver, func)
 
     @override
     def unregister(self, interface: type) -> None:
