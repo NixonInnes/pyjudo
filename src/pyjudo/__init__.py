@@ -1,4 +1,4 @@
-from pyjudo.core import IResolver, IScopeStack, IServiceScope, ServiceLife
+from pyjudo.core import IResolver, IServiceContainer, IScopeStack, IServiceScope, ServiceLife
 
 from .factory import Factory
 from .resolver import Resolver
@@ -34,6 +34,7 @@ def ServiceContainer() -> ServiceContainerBase:
 __all__ = [
     "Factory",
     "ServiceContainer",
+    "IServiceContainer",
     "ServiceLife",
 ]
 

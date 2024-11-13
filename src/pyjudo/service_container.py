@@ -2,7 +2,7 @@ from functools import wraps
 import inspect
 import logging
 import threading
-from typing import override, Any, Callable, Self
+from typing import TypeAlias, override, Any, Callable, Self, Union
 
 from pyjudo.core import (
     IServiceContainer,
@@ -17,31 +17,32 @@ from pyjudo.core import (
 from pyjudo.exceptions import ServiceRegistrationError, ServiceResolutionError, ServiceTypeError
 from pyjudo.factory import FactoryProxy
 
+
 class InjectDecorator:
     def __init__(self, resolver: IResolver, func: Callable[..., Any]) -> None:
         self.resolver: IResolver = resolver
-        self.func: Callable[..., Any] | classmethod[Any, ..., Any] = func
+        self.func: Callable[..., Any] = func
     
-    def __get__[T](self, instance: T | None, owner: type[T] | None) -> Callable[..., Any] | classmethod[Any, ..., Any]:
+    def __get__[T](self, instance: T | None, owner: type[T] | None) -> Callable[..., Any]:
         if isinstance(self.func, classmethod):
             original_func = self.func.__func__
 
             @wraps(original_func)
-            def classmethod_wrapper(*args: Any, **kwargs: Any) -> Callable[..., Any]:
+            def classmethod_wrapper(*args: Any, **kwargs: Any) -> Any:
                 return self.resolver.resolve_anonymous(original_func, kwargs, binding=owner)
-            return classmethod(classmethod_wrapper)
+            return classmethod_wrapper
 
         elif isinstance(self.func, staticmethod):
             original_func = self.func.__func__
 
             @wraps(original_func)
-            def staticmethod_wrapper(*args: Any, **kwargs: Any):
+            def staticmethod_wrapper(*args: Any, **kwargs: Any) -> Any:
                 return self.resolver.resolve_anonymous(original_func, kwargs, binding=None)
-            return staticmethod(staticmethod_wrapper)
+            return staticmethod_wrapper
 
         else:
             @wraps(self.func)
-            def bound_wrapper(*args, **kwargs):
+            def bound_wrapper(*args: Any, **kwargs: Any) -> Any:
                 return self.resolver.resolve_anonymous(self.func, kwargs, binding=instance)
             return bound_wrapper
 
@@ -66,6 +67,9 @@ class ServiceContainer(IServiceContainer):
         self.scope_stack = scope_stack
         self.scope_factory = scope_factory
         self.resolver = resolver
+
+        self.register(IServiceContainer, self.__class__, ServiceLife.SINGLETON)
+        self.singleton_cache.add(IServiceContainer, self)
 
     @override
     def register[T](
