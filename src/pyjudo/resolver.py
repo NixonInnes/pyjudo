@@ -123,7 +123,9 @@ class Resolver(IResolver):
             if name in ("self", "cls") and binding is not None:
                 constructor_args.insert(0, binding)
                 continue
-                
+
+            if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+                continue # Skip *args and **kwargs
 
             origin = get_origin(param.annotation)
             args = get_args(param.annotation)
