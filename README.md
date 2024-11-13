@@ -24,8 +24,11 @@ pip install pyjudo
 - Services container:
   - Provides a container to register and resolve dependencies.
 
-- Dependency injection:
-  - Automatically resolves and injects dependencies for services retrieved from the service container.
+- Service dependency injection:
+  - Automatically resolves and injects dependencies for service (classes) retrieved from the service container.
+
+- Callable dependency injection:
+  - Automatically resolve dependencies for callables (functions, methods, class methods & static methods), decorated with `@container.inject`
 
 - Service lifetimes:
   - Singleton: A single instance created and shared across the container.
@@ -116,11 +119,18 @@ with services.create_scope() as service_scope:
     result = db.query("SELECT *")
 print(result)
 
+
+@services.inject
+def print_connection_str(db_uri_builder: IDatabaseURIBuilder):
+    print("Database connection string:", db_uri_builder.get_uri())
+
+print_connection_str()
 # Output:
 """
 Connected to database: connect.to.me
 Executing query: SELECT * FROM foobar
 Disconnected from database: connect.to.me
 {'result': 'data'}
+Database connection string: connect.to.me
 """
 ```

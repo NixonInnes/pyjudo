@@ -33,3 +33,32 @@ def test_transient_dependencies(services):
     service_c = container.get(services.IServiceC)
 
     assert service_b.service_a is not service_c.service_a
+
+def test_transient_service_thread_safety(services):
+    import threading
+
+    container = ServiceContainer()
+
+    _ = container.register(services.ITransientService, services.TransientService, ServiceLife.TRANSIENT)
+    thread_count = 10
+    results = []
+    barrier = threading.Barrier(thread_count)
+    lock = threading.Lock()
+
+    def resolve_transient():
+        # Wait for all threads to be ready
+        barrier.wait()
+        service = container.get(services.ITransientService)
+        with lock:
+            results.append(service)
+
+    threads = [threading.Thread(target=resolve_transient) for _ in range(thread_count)]
+
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    # Verify that all transient services are unique instances
+    unique_services = set(id(service) for service in results)
+    assert len(unique_services) == thread_count, "TransientService instances are not unique across resolutions."
