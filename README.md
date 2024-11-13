@@ -24,8 +24,11 @@ pip install pyjudo
 - Services container:
   - Provides a container to register and resolve dependencies.
 
-- Dependency injection:
-  - Automatically resolves and injects dependencies for services retrieved from the service container.
+- Service dependency injection:
+  - Automatically resolves and injects dependencies for service (classes) retrieved from the service container.
+
+- Callable dependency injection:
+  - Automatically resolve dependencies for callables (functions, methods, class methods & static methods), decorated with `@container.inject`
 
 - Service lifetimes:
   - Singleton: A single instance created and shared across the container.
