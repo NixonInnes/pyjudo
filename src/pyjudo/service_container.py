@@ -23,6 +23,7 @@ class InjectDecorator:
         self.resolver: IResolver = resolver
         self.func: Callable[..., Any] = func
     
+    
     def __get__[T](self, instance: T | None, owner: type[T] | None) -> Callable[..., Any]:
         if isinstance(self.func, classmethod):
             original_func = self.func.__func__
@@ -45,6 +46,10 @@ class InjectDecorator:
             def bound_wrapper(*args: Any, **kwargs: Any) -> Any:
                 return self.resolver.resolve_anonymous(self.func, kwargs, binding=instance)
             return bound_wrapper
+
+    @property
+    def __name__(self) -> str:
+        return self.func.__name__
 
     def __call__(self, *args, **kwargs):
         return self.resolver.resolve_anonymous(self.func, kwargs)
