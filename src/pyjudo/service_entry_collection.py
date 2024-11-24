@@ -16,7 +16,7 @@ class ServiceEntryCollection(IServiceEntryCollection):
             entry = self._entries.get(interface)
         if entry is None:
             raise ServiceResolutionError(
-                f"No service registered for: {interface.__name__}"
+                f"No service registered for: {interface}"
             )
         return entry
 
@@ -25,7 +25,7 @@ class ServiceEntryCollection(IServiceEntryCollection):
         with self.__lock:
             if interface in self._entries:
                 raise ServiceRegistrationError(
-                    f"Service '{interface.__name__}' is already registered."
+                    f"Service '{interface}' is already registered."
                 )
             self._entries[interface] = entry
 

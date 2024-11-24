@@ -1,3 +1,5 @@
+# pragma: no cover
+
 from pyjudo.core import IResolver, IServiceContainer, IScopeStack, IServiceScope, ServiceLife
 
 from .factory import Factory

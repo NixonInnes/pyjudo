@@ -57,12 +57,12 @@ class Resolver(IResolver):
     def resolve[T](self, interface: type[T], overrides: dict[str, Any]) -> T:
         if interface in self._resolution_stack:
             raise ServiceCircularDependencyError(
-                f"Circular dependency detected for '{interface.__name__}'"
+                f"Circular dependency detected for '{interface}'"
             )
 
         _ = self._resolution_stack.add(interface)
-        interface_name = getattr(interface, "__name__", str(interface))
-        self._logger.debug(f"Resolving service '{interface_name}'")
+        
+        self._logger.debug(f"Resolving service '{interface}'")
 
         try:
             entry = self.service_entry_collection.get(interface)
@@ -90,7 +90,7 @@ class Resolver(IResolver):
             self.singleton_cache.add(interface, instance)
         elif overrides:  # already exists and overrides are specified
             raise ServiceResolutionError(
-                f"Singleton service '{interface.__name__}' already exists. Cannot specify overrides."
+                f"Singleton service '{interface}' already exists. Cannot specify overrides."
             )
         return instance
 

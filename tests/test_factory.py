@@ -30,9 +30,9 @@ class MockResolver(IResolver):
         raise NotImplementedError()
 
 
-class TestFactory(unittest.TestCase):
+class Test_Factory(unittest.TestCase):
     def setUp(self):
-        self.factory = FactoryProxy(MockResolver(), IFooService)
+        self.factory = FactoryProxy(MockResolver(), IFooService) # pyright: ignore[reportUninitializedInstanceVariable]
 
     def test_call_factory(self):
         foo = self.factory()

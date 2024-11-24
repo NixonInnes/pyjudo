@@ -22,7 +22,7 @@ class DisposableClass(IDisposable):
         self.x = None # pyright: ignore[reportAttributeAccessIssue]
 
 
-class TestDisposable(unittest.TestCase):
+class Test_Disposable(unittest.TestCase):
     @override
     def setUp(self) -> None:
         self.disposable: IDisposable = DisposableClass() #pyright: ignore[reportUninitializedInstanceVariable]
