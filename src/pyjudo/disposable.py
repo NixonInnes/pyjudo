@@ -38,7 +38,7 @@ class IDisposable(ABC):
 
     def _check_disposed(self) -> None:
         """
-        Raises an exception if the object has been disposed.
+        Raises an exception (`ServiceDisposedError`) if the object has been disposed.
         """
         if self.__disposed:
             raise ServiceDisposedError("Object is disposed and cannot be used.")
@@ -57,6 +57,7 @@ class IDisposable(ABC):
         """
         # Allow access to certain attributes to prevent recursion and allow checking if disposed.
         permitted_attrs = (
+            "dispose",
             "is_disposed",
             "_check_disposed", 
             "_IDisposable__disposed")

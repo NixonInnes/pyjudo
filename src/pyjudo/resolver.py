@@ -3,7 +3,6 @@ import logging
 import threading
 from typing import Any, Callable, cast, get_args, get_origin, override
 
-
 from pyjudo.core import IResolver, IServiceEntryCollection, IServiceCache, IScopeStack, ServiceLife
 from pyjudo.exceptions import (
     ServiceCircularDependencyError,
@@ -14,6 +13,10 @@ from pyjudo.factory import Factory, FactoryProxy
 
 
 class Resolver(IResolver):
+    """
+    Resolves services from the container.
+    The resolver is responsible for retrieving service instances from a container.
+    """
     def __init__(
         self,
         service_entry_collection: IServiceEntryCollection,
@@ -152,47 +155,3 @@ class Resolver(IResolver):
                 raise Exception("Invalid parameter kind: {param.kind}")
         
         return cast(T, constructor(*constructor_args, **constructor_kwargs))
-
-
-    def _create_instance__[T](
-        self, constructor: type[T] | Callable[..., T], overrides: dict[str, Any], instance: Any | None = None
-    ) -> T:
-        if inspect.isclass(constructor):
-            type_hints = inspect.signature(constructor.__init__).parameters
-        else:
-            type_hints = inspect.signature(constructor).parameters
-
-        kwargs = {}
-
-        for name, param in type_hints.items():
-            if name == "self":
-                continue
-
-            # Skip *args and **kwargs
-            if param.kind in (
-                inspect.Parameter.VAR_POSITIONAL,
-                inspect.Parameter.VAR_KEYWORD,
-            ):
-                continue
-
-            origin = get_origin(param.annotation)
-            args = get_args(param.annotation)
-            if origin is Factory and args:
-                interface = args[0]
-                kwargs[name] = FactoryProxy(self, interface)
-                continue
-
-            if name in overrides:
-                kwargs[name] = overrides[name]
-            elif param.annotation in self.service_entry_collection:
-                kwargs[name] = self.resolve(param.annotation, {})
-            elif param.default != inspect.Parameter.empty:
-                kwargs[name] = param.default
-            else:
-                raise ServiceResolutionError(
-                    f"Unable to resolve dependency '{name}' for '{constructor.__name__}'"
-                )
-
-        self._logger.debug(f"Creating new instance of '{T}'")
-
-        return cast(T, constructor(**kwargs))  # TODO: Remove cast

@@ -7,6 +7,7 @@ class ServiceEntry[T]:
     """
     Represents a service entry in the container.
     """
+    __slots__ = ("constructor", "lifetime")
 
     constructor: type[T] | Callable[..., T]
     lifetime: ServiceLife
