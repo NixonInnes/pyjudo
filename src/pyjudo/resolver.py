@@ -3,7 +3,13 @@ import logging
 import threading
 from typing import Any, Callable, cast, get_args, get_origin, override
 
-from pyjudo.core import IResolver, IServiceEntryCollection, IServiceCache, IScopeStack, ServiceLife
+from pyjudo.core import (
+    IResolver,
+    IServiceEntryCollection,
+    IServiceCache,
+    IScopeStack,
+    ServiceLife,
+)
 from pyjudo.exceptions import (
     ServiceCircularDependencyError,
     ServiceResolutionError,
@@ -17,6 +23,7 @@ class Resolver(IResolver):
     Resolves services from the container.
     The resolver is responsible for retrieving service instances from a container.
     """
+
     def __init__(
         self,
         service_entry_collection: IServiceEntryCollection,
@@ -38,7 +45,12 @@ class Resolver(IResolver):
         return self.__resolution_stack.stack
 
     @override
-    def resolve_anonymous[T](self, constructor: Callable[..., T], overrides: dict[str, Any], binding: Any | None = None) -> T:
+    def resolve_anonymous[T](
+        self,
+        constructor: Callable[..., T],
+        overrides: dict[str, Any],
+        binding: Any | None = None,
+    ) -> T:
         return self._create_instance(constructor, overrides, binding)
 
     @override
@@ -49,7 +61,8 @@ class Resolver(IResolver):
             )
 
         _ = self._resolution_stack.add(interface)
-        self._logger.debug(f"Resolving service '{interface.__name__}'")
+        interface_name = getattr(interface, "__name__", str(interface))
+        self._logger.debug(f"Resolving service '{interface_name}'")
 
         try:
             entry = self.service_entry_collection.get(interface)
@@ -75,7 +88,7 @@ class Resolver(IResolver):
         if instance is None:
             instance = self._create_instance(constructor, overrides)
             self.singleton_cache.add(interface, instance)
-        elif overrides: # already exists and overrides are specified
+        elif overrides:  # already exists and overrides are specified
             raise ServiceResolutionError(
                 f"Singleton service '{interface.__name__}' already exists. Cannot specify overrides."
             )
@@ -108,11 +121,14 @@ class Resolver(IResolver):
         return self._create_instance(constructor, overrides)
 
     def _create_instance[T](
-        self, constructor: type[T] | Callable[..., T], overrides: dict[str, Any], binding: Any | None = None
+        self,
+        constructor: type[T] | Callable[..., T],
+        overrides: dict[str, Any],
+        binding: Any | None = None,
     ) -> T:
         if inspect.isclass(constructor):
             signature = inspect.signature(constructor.__init__)
-            parameters = list(signature.parameters.values())[1:] # Skip 'self'
+            parameters = list(signature.parameters.values())[1:]  # Skip 'self'
         else:
             signature = inspect.signature(constructor)
             parameters = list(signature.parameters.values())
@@ -127,8 +143,11 @@ class Resolver(IResolver):
                 constructor_args.insert(0, binding)
                 continue
 
-            if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
-                continue # Skip *args and **kwargs
+            if param.kind in (
+                inspect.Parameter.VAR_POSITIONAL,
+                inspect.Parameter.VAR_KEYWORD,
+            ):
+                continue  # Skip *args and **kwargs
 
             origin = get_origin(param.annotation)
             args = get_args(param.annotation)
@@ -146,12 +165,15 @@ class Resolver(IResolver):
                 raise ServiceResolutionError(
                     f"Unable to resolve dependency '{name}' for '{constructor.__name__}'"
                 )
-            
+
             if param.kind == inspect.Parameter.POSITIONAL_ONLY:
                 constructor_args.append(resolved)
-            elif param.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
+            elif param.kind in (
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.KEYWORD_ONLY,
+            ):
                 constructor_kwargs[name] = resolved
             else:
                 raise Exception("Invalid parameter kind: {param.kind}")
-        
+
         return cast(T, constructor(*constructor_args, **constructor_kwargs))
