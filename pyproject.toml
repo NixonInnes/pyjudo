@@ -1,6 +1,6 @@
 [project]
 name = "pyjudo"
-version = "0.6.2"
+version = "0.7.0"
 description = "Simple dependency injection for Python."
 readme = "README.md"
 requires-python = ">=3.12"
