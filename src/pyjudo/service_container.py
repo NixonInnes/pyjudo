@@ -23,6 +23,7 @@ class InjectDecorator:
         self.resolver: IResolver = resolver
         self.func: Callable[..., Any] = func
     
+    
     def __get__[T](self, instance: T | None, owner: type[T] | None) -> Callable[..., Any]:
         if isinstance(self.func, classmethod):
             original_func = self.func.__func__
@@ -45,6 +46,10 @@ class InjectDecorator:
             def bound_wrapper(*args: Any, **kwargs: Any) -> Any:
                 return self.resolver.resolve_anonymous(self.func, kwargs, binding=instance)
             return bound_wrapper
+
+    @property
+    def __name__(self) -> str:
+        return self.func.__name__
 
     def __call__(self, *args, **kwargs):
         return self.resolver.resolve_anonymous(self.func, kwargs)
@@ -80,15 +85,15 @@ class ServiceContainer(IServiceContainer):
     ) -> None:
         if inspect.isclass(constructor):
             if not issubclass(constructor, interface):
-                raise ServiceRegistrationError(f"'{constructor.__name__}' does not implement '{interface.__name__}'")
+                raise ServiceRegistrationError(f"'{constructor}' does not implement '{interface}'")
         elif callable(constructor):
             return_annotation = inspect.signature(constructor).return_annotation
 
             if return_annotation is inspect.Signature.empty:
-                raise ServiceRegistrationError(f"Callable '{constructor.__name__}' must have a return annotation.")
+                raise ServiceRegistrationError(f"Callable '{constructor}' must have a return annotation.")
             
             if not issubclass(return_annotation, interface):
-                raise ServiceRegistrationError(f"'{constructor.__name__}' does not return '{interface.__name__}'")
+                raise ServiceRegistrationError(f"'{constructor}' does not return '{interface}'")
         else:
             raise ServiceRegistrationError("Constructor must be a class or callable")
 
@@ -129,13 +134,13 @@ class ServiceContainer(IServiceContainer):
         with self.__lock:
             service = self.resolver.resolve(interface, overrides)
         if not issubclass(type(service), interface):
-            raise ServiceTypeError(f"Service '{service}' is not of type '{interface.__name__}'")
+            raise ServiceTypeError(f"Service '{service}' is not of type '{interface}'")
         return service
 
     @override
     def get_factory[T](self, interface: type[T]) -> Callable[..., T]:
         if not self.is_registered(interface):
-            raise ServiceResolutionError(f"Service '{interface.__name__}' is not registered.")
+            raise ServiceResolutionError(f"Service '{interface}' is not registered.")
         return FactoryProxy(self.resolver, interface)
 
     @override

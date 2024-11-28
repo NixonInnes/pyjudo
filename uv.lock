@@ -1036,13 +1036,13 @@ wheels = [
 
 [[package]]
 name = "pyjudo"
-version = "0.5.2"
+version = "0.6.2"
 source = { editable = "." }
 
 [package.dev-dependencies]
 dev = [
+    { name = "coverage" },
     { name = "jupyter" },
-    { name = "pytest" },
     { name = "pytest-cov" },
 ]
 
@@ -1050,8 +1050,8 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "coverage", specifier = ">=7.6.4" },
     { name = "jupyter", specifier = ">=1.1.1" },
-    { name = "pytest", specifier = ">=8.3.3" },
     { name = "pytest-cov", specifier = ">=6.0.0" },
 ]
 

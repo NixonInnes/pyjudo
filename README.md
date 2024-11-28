@@ -111,7 +111,9 @@ services.add_scoped(IDatabaseConnection, DatabaseConnection)
 ### 3. Resolve Services
 Retrieve and utilise services from the `ServiceCollection`. When retrieving services from the `ServiceContainer`, services referenced in constructors (`__init__`) will be automatically resolved.  
 
-You can also overwrite any constructor arguments when retrieving services:
+Constructor arguments may also be overwritten when retrieving services from the container, i.e. `table_name="foobar"`. (See [01 Basic](examples/01_basic.ipynb)).
+
+Callables can have services injected using the `@services.inject` decorator. (See [05 Functions](examples/05_functions.ipynb)).
 
 ```python
 with services.create_scope() as service_scope:

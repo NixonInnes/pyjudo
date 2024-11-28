@@ -8,6 +8,10 @@ class Factory[T](Protocol):
 
 
 class FactoryProxy[T](Factory[T]):
+    """
+    A proxy for a factory that resolves an interface.
+    Calling the proxy will resolve the interface from the container.
+    """
     _resolver: IResolver
     _interface: type[T]
 
